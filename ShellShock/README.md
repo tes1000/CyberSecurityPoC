@@ -1,0 +1,3 @@
+# ShellShock Test Lab
+
+This lab is designed to underscore the significance of maintaining up-to-date software components and the risks associated with invalidated input. Specifically, it explores the Shellshock vulnerability, a critical security flaw that can lead to remote code execution in the widely used Bash shell. By emphasizing the importance of promptly updating and securing components, this lab serves as a practical demonstration of the potential consequences that can arise from overlooking the need for timely maintenance and validation of system inputs.

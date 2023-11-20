@@ -1,4 +1,4 @@
-From node:latest
+FROM node:latest
 
 RUN mkdir /var/www
 RUN mkdir /var/www/html

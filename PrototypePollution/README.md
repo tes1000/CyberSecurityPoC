@@ -1,4 +1,4 @@
-# Prototype Pollution Test Server
+# Prototype Pollution Test Lab
 
 This Node.js server serves as a demonstration of the inherent risks associated with prototype pollution when trusting user-submitted objects, particularly in handling account creation and login functionalities. It is important to be aware that intentional vulnerabilities related to prototype pollution have been incorporated into this server, leveraging JSON5 v2.2.0.
 
