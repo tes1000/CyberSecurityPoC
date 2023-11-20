@@ -24,7 +24,7 @@ docker run -p 80:80 shellShock_Poc
 apt update
 
 # install dependencies
-apt install wget libpcre3-dev libapr1-dev libaprutil1-dev build-essential tar -y
+apt install wget libpcre3-dev libapr1-dev libaprutil1-dev build-essential tar netcat-traditional -y
 
 # download vulnerable apache source files
 wget https://archive.apache.org/dist/httpd/httpd-2.4.18.tar.gz
@@ -70,6 +70,8 @@ make bash-4.0/.
 
 # install bash binary
 make install bash-4.0/.
+
+# OPTIONAL HINT TEXT: Copy index html page to path /usr/local/apache2/htdocs/index.html
 
 # start vulnerable service
 service httpd start

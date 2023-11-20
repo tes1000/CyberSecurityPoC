@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apache Shell Shock Demo</title>
+    <style>
+        /* Initially hide the hint */
+        .hint {
+            display: none;
+            color: blue;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Apache Shell Shock Demo</h1>
+    <p>The server is using a vulnerable version of Bash (Bash 4.0).</p>
+
+    <!-- Button to toggle hint visibility -->
+    <button onclick="toggleHint()">Toggle Hint</button>
+
+    <!-- Hidden field with hint -->
+    <p id="hintText" class="hint">The /cgi-bin/logger script takes user agent into bash variable</p>
+
+    <script>
+        // Boolean variable to track hint visibility
+        var hintVisible = false;
+
+        // JavaScript function to toggle hint visibility
+        function toggleHint() {
+            var hintText = document.getElementById("hintText");
+            hintVisible = !hintVisible; // Toggle the boolean value
+            hintText.style.display = hintVisible ? "block" : "none";
+        }
+    </script>
+</body>
+</html>
