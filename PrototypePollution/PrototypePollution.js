@@ -122,6 +122,7 @@ const express = require("express");
   }});
   // start the server
   function inputValidation(input){
+    print("Validate input: ",input)
         pattern = /^[a-zA-Z0-9_\-!@#$%^&*()+=?<>:.,;{}[\]|\s]+$/;
     if(typeof(input) != "object")
       return [false, "Input Error: Not Object"]
