@@ -8,12 +8,12 @@ This Node.js server serves as a demonstration of the inherent risks associated w
 
 1. Clone this repository:
     ```bash
-    git clone https://github.com/your-username/your-repo.git
+    git clone https://github.com/tes1000/CyberSecurityPoC.git
     ```
 
 2. Navigate to the downloaded folder:
     ```bash
-    cd your-repo
+    cd CyberSecurityPoC\PrototypePollution
     ```
 
 3. Install dependencies:
