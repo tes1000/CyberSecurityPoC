@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apache Path Traversal Demo</title>
+    <title>Apache Path Travseral Demo</title>
     <style>
         /* Initially hide the hint */
         .hint {
@@ -15,14 +15,14 @@
     </style>
 </head>
 <body>
-    <h1>Apache Path Traversal Demo</h1>
-    <p>The server is using a vulnerable version of Apache</p>
+    <h1>Apache Path Travseral Demo</h1>
+    <p>The server is using a vulnerable version of Httpd.</p>
 
     <!-- Button to toggle hint visibility -->
     <button onclick="toggleHint()">Toggle Hint</button>
 
     <!-- Hidden field with hint -->
-    <p id="hintText" class="hint">The cgi-bin has been misconfigured, whilst the apache version doesnt properly validate encoded data Allowing path traversal</p>
+    <p id="hintText" class="hint">The cgi-bin is poorly configured allowing pathtraversal, however the apache server will detect ../ and even %2e!</p>
 
     <script>
         // Boolean variable to track hint visibility

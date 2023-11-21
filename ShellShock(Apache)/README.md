@@ -6,6 +6,9 @@ This lab is designed to underscore the significance of maintaining up-to-date so
 # download repo
 git clone https://github.com/tes1000/CyberSecurityPoC.git
 
+# cd into relevent folder
+cd 'ShellShock(Apache)'
+
 # build docker image
 docker build . -t shellShock_Poc
 
