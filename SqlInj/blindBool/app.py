@@ -13,7 +13,7 @@ def initDB():
     cursor.execute('SELECT * FROM users WHERE username = \'admin\'')
     existing_admin = cursor.fetchone()
     if not existing_admin:
-        cursor.execute('INSERT INTO users (username, pass, flag) VALUES (\'admin\', \'w34kP455\', \'dhWGkGJF$Nvkau!MebVdcDQGxrCzfbuH8DFpfTxV&46x&LD5&^ZT3nZ\')')
+        cursor.execute('INSERT INTO users (username, pass, flag) VALUES (\'admin\', \'w34kp455\', \'HCiFJtUBCoSFaWCws9uuRT5VcFLKf8uV2MCe7bxB9ksXui56RZbLQcEKH7sTBfeumux4LWutU3rNFFXpgE7uBF8NDy\')')
     conn.commit()
     conn.close()
 
@@ -65,7 +65,8 @@ def search():
         cursor.execute(query)
         results = cursor.fetchall()
     except sqlite3.Error as e:
-        results = f'Error: {e}'
+        results = None
+        print(f'Error: {e}')
 
     conn.close()
     print("executed")
