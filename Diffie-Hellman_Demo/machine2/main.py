@@ -6,10 +6,15 @@ import time
 
 app = Flask(__name__)
 
+# Parameters for Diffie-Hellman
 p = 23
 g = 5
 private_key = 15
 B = pow(g, private_key, p)
+
+# Thread-safe storage for shared secret
+shared_secret_lock = threading.Lock()
+shared_secret = None  # Initialize as None
 
 
 def socket_server():
@@ -25,22 +30,32 @@ def socket_server():
 
 def handle_client(conn, addr):
     """Handle an individual Diffie-Hellman client connection."""
+    global shared_secret
+
     try:
-        print(f"Machine2: Connection from {addr}")
-        A = int(conn.recv(1024).decode())
-        conn.sendall(str(B).encode())
-        shared_secret = pow(A, private_key, p)
-        print(f"Machine2: Shared Secret is {shared_secret}")
+        app.logger.error(f"Machine2: Connection from {addr}")
+        A = int(conn.recv(1024).decode())  # Receive public key A
+        conn.sendall(str(B).encode())  # Send public key B to the client
+
+        # Calculate shared secret
+        calculated_secret = pow(A, private_key, p)
+        app.logger.error(f"Machine2: Shared Secret is {calculated_secret}")
+
+        # Store shared secret in a thread-safe manner
+        with shared_secret_lock:
+            shared_secret = calculated_secret
 
         # Send shared secret to Machine3's broadcast endpoint
         requests.post("http://machine3:3000/broadcast", json={
             "sender": "10.0.0.3",
-            "message": f"Shared Secret: {shared_secret}"
+            "message": "Shared Secret:",
+            "data": calculated_secret
         })
     except Exception as e:
-        print(f"Machine2: Error handling client {addr}: {e}")
+        app.logger.error(f"Machine2: Error handling client {addr}: {e}")
     finally:
         conn.close()
+
 
 @app.route('/trigger1', methods=['POST'])
 def trigger1():
@@ -60,6 +75,19 @@ def handle_rsa_exchange():
         return jsonify({"status": "Trigger 2 executed"}), 200
     except Exception as e:
         return jsonify({"status": f"Error: {str(e)}"}), 500
+
+
+@app.route('/collect', methods=['GET'])
+def collect_shared_secret():
+    """Endpoint to retrieve the shared secret."""
+    global shared_secret
+
+    # Access shared secret in a thread-safe manner
+    with shared_secret_lock:
+        if shared_secret is not None:
+            return jsonify({"shared_secret": shared_secret}), 200
+        else:
+            return jsonify({"error": "Shared secret not yet generated"}), 404
 
 
 if __name__ == "__main__":

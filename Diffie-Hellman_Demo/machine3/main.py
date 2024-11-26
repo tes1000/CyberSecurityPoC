@@ -18,13 +18,24 @@ def intercepted_page():
 @app.route('/trigger1', methods=['POST'])
 def trigger1():
     """Handle Trigger 1: Diffie-Hellman Exchange"""
+    # Clear data for a fresh start
+    with intercepted_data_lock:
+        intercepted_data.clear()
+        broadcasted_data.clear()
     # Forward trigger to Machine1
+    
     response = requests.post('http://machine1:8000/trigger1')
+
     return jsonify({"status": "Trigger 1 initiated"}), response.status_code
 
 @app.route('/trigger2', methods=['POST'])
 def trigger2():
     """Handle Trigger 2: RSA Key Exchange"""
+    # Clear data for a fresh start
+    with intercepted_data_lock:
+        intercepted_data.clear()
+        broadcasted_data.clear()
+
     # Forward trigger to Machine2
     response = requests.post('http://machine2:8001/trigger2')
     return jsonify({"status": "Trigger 2 initiated"}), response.status_code
@@ -34,26 +45,46 @@ def get_intercepted_data():
     """API to fetch intercepted data."""
     return jsonify(intercepted_data)
 
+@app.route('/api/broadcasted', methods=['GET'])
+def get_broadcasted_data():
+    """API to fetch broadcasted data."""
+    app.logger.debug(f"Broadcasted Data: {broadcasted_data}")
+    return jsonify(broadcasted_data)
+
 @app.route('/broadcast', methods=['POST'])
 def broadcast():
     """API to receive broadcasted data."""
     message = request.json.get("message", "")
     sender = request.json.get("sender", "Unknown")
-    broadcasted_data.append({"sender": sender, "message": message})
-    print(f"Machine3: Broadcast received from {sender}: {message}")
+    data = request.json.get("data", "Unknown")
+    broadcasted_data.append({"sender": sender, "message": message, "data": data})
+    app.logger.error(f"Machine3: Broadcast received from {sender}: {message}")
+
+    # Check if both secrets have been exchanged
+    if len(intercepted_data) >= 2:  # Ensure at least two broadcasts have occurred
+        try:
+            app.logger.info("Both data exchanges completed. Requesting secrets from /collect endpoints.")
+
+            # Hit the /collect endpoint on Machine1
+            response1 = requests.get("http://machine1:8000/collect")
+            app.logger.info(f"Machine1 /collect response: {response1.json()}")
+
+            # Hit the /collect endpoint on Machine2
+            response2 = requests.get("http://machine2:8001/collect")
+            app.logger.info(f"Machine2 /collect response: {response2.json()}")
+
+        except Exception as e:
+            app.logger.error(f"Error while hitting /collect endpoints: {e}")
+
     return jsonify({"status": "received"}), 200
 
-@app.route('/api/broadcasted', methods=['GET'])
-def get_broadcasted_data():
-    """API to fetch broadcasted data."""
-    return jsonify(broadcasted_data)
 
 def forward(source, destination):
     """Forward data between connections and log intercepted data."""
     try:
         while True:
             data = source.recv(1024)
-            if not data:
+            if not data:  # If no data is received, exit loop
                 break
             source_address = source.getpeername()[0]
             destination_address = destination.getpeername()[0]
@@ -62,13 +93,11 @@ def forward(source, destination):
                 "to": destination_address,
                 "data": data.decode()
             })
-            print(f"Machine3: Intercepted from {source_address}: {data.decode()}")
-            destination.sendall(data)
+            app.logger.error(f"Machine3: Intercepted from {source_address}: {data.decode()}")
+            destination.sendall(data)  # Forward the data
     except Exception as e:
-        print(f"Machine3: Error during forwarding: {e}")
-    finally:
-        source.close()
-        destination.close()
+        app.logger.error(f"Machine3: Error during forwarding: {e}")
+
 
 def run_socket_server():
     """Socket server to handle Machine1 -> Machine2 forwarding."""
@@ -79,7 +108,7 @@ def run_socket_server():
 
         while True:  # Loop to handle multiple connections
             conn1, addr1 = s1.accept()
-            print(f"Machine3: Connection from Machine1 ({addr1})")
+            app.logger.error(f"Machine3: Connection from Machine1 ({addr1})")
 
             # Create a new thread for each connection
             threading.Thread(target=handle_connection, args=(conn1,)).start()
@@ -98,18 +127,23 @@ def handle_connection(conn1):
                     break
                 except socket.error as e:
                     retries -= 1
-                    print(f"Machine3: Retry connecting to Machine2... ({5 - retries}/5)")
+                    app.logger.error(f"Machine3: Retry connecting to Machine2... ({5 - retries}/5)")
                     time.sleep(1)
                     if retries == 0:
-                        raise e
-
+                        raise ConnectionError("Machine3: Unable to connect to Machine2 after 5 retries")
+                    
             # Start forwarding data between Machine1 and Machine2
-            threading.Thread(target=forward, args=(conn1, s2)).start()
-            threading.Thread(target=forward, args=(s2, conn1)).start()
+            thread1 = threading.Thread(target=forward, args=(conn1, s2))
+            thread2 = threading.Thread(target=forward, args=(s2, conn1))
+            thread1.start()
+            thread2.start()
+            thread1.join()
+            thread2.join()  # Ensure both threads finish before cleanup
     except Exception as e:
-        print(f"Machine3: Error handling connection: {e}")
+        app.logger.error(f"Machine3: Error handling connection: {e}")
     finally:
-        conn1.close()
+        conn1.close()  # Clean up Machine1's connection
+
 
 if __name__ == "__main__":
     flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=3000, debug=False))

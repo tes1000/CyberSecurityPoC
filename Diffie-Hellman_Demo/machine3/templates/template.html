@@ -36,6 +36,13 @@
             margin-top: 50px;
             position: relative;
         }
+        #network-container{
+            display: flex;
+            justify-content: center;
+            width: 35%;
+            margin: 35px auto;
+        }
+
         .box {
             width: 150px;
             height: 100px;
@@ -61,6 +68,7 @@
             background-color: #000;
             color: #fff;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 50px;
@@ -71,25 +79,79 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
+        .black-box > i {
+            font-size: 10px;
+            color: lightgreen;
+        }
         .data-animation {
             position: absolute;
             padding: 5px 10px;
-            background-color: #f0f0f0;
-            color: #000;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            background-color: #007BFF;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
             z-index: 1000;
+            font-weight: bold;
+            transition: all 2s linear;
         }
+        
+        .dotted-line {
+            position: absolute;
+            height: 2px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 5px,
+                black 5px,
+                black 10px
+            );
+            transform-origin: 0 50%;
+            z-index: 500;
+            transition: all 2s linear;
+        }
+        
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 5px 7px 5px 0;
+            border-color: transparent black transparent transparent;
+            transform-origin: 50% 50%;
+            z-index: 1000;
+            transition: all 2s linear;
+        }
+        
         .popup {
             position: absolute;
             top: -4em;
             left: 50%;
             transform: translateX(-50%);
-            background-color: #000;
+            background-color: rgba(0, 0, 0, 0.8);
             color: #fff;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
             animation: fadeOut 3s forwards;
+        }
+        #intercepted-container, #broadcast-container {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+        #intercepted-container {
+            background-color: pink;
+        }
+        #broadcast-container {
+            background-color: lightgreen;
+        }
+        .data-list {
+            display: flex;
+            justify-content: space-between;
+        }
+        .data-list > div {
+            width: 45%;
         }
         @keyframes fadeOut {
             0% { opacity: 1; }
@@ -109,88 +171,207 @@
     <!-- Data Visualization -->
     <div id="container">
         <div id="red-box" class="box red-box" data-label="10.0.0.2">10.0.0.2</div>
-        <div class="black-box">☠️</div>
+        <div class="black-box"><i>10.0.0.4</i><span>☠️</span></div>
         <div id="green-box" class="box green-box" data-label="10.0.0.3">10.0.0.3</div>
     </div>
 
-    <script>
-        const processedData = new Set();
+    <div id="network-container"> 
+    <!-- Intercepted Data Container -->
+    <div id="intercepted-container">
+        <h3>Network Data</h3>
+        <div class="data-list">
+            <div>
+                <h4>10.0.0.2</h4>
+                <hr></hr>
+                <ul id="intercepted-10-0-0-2"></ul>
+            </div>
+            <div>
+                <h4>10.0.0.3</h4>
+                <hr></hr>
+                <ul id="intercepted-10-0-0-3"></ul>
+            </div>
+        </div>
+    </div>
 
-        // Trigger actions
+    <!-- Broadcast Data Container -->
+    <div id="broadcast-container">
+        <h3>Secret Data</h3>
+        <div class="data-list">
+            <div>
+                <h4>10.0.0.2</h4>
+                <hr></hr>
+                <ul id="broadcast-10-0-0-2"></ul>
+            </div>
+            <div>
+                <h4>10.0.0.3</h4>
+                <hr></hr>
+                <ul id="broadcast-10-0-0-3"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        const processedData = new Set(); // Track already animated items
+        let isProcessing = false; // Prevent overlapping triggers
+
         async function triggerAction(endpoint) {
+            if (isProcessing) {return};
+            isProcessing = true;
+
             try {
+                processedData.clear();
+                clearOldPopups();
+
                 await fetch(endpoint, { method: 'POST' });
                 console.log(`Triggered action at ${endpoint}`);
-                fetchInterceptedData();
+
+                await fetchInterceptedData();
+                await fetchBroadcastedData();
             } catch (error) {
                 console.error(`Error triggering action at ${endpoint}:`, error);
+                isProcessing = false;
+            } finally {
+                isProcessing = false;
             }
         }
 
-        // Fetch and process intercepted data
         async function fetchInterceptedData() {
             const response = await fetch('/api/intercepted');
             const interceptedData = await response.json();
-
+        
+            document.getElementById('intercepted-10-0-0-2').innerHTML = '';
+            document.getElementById('intercepted-10-0-0-3').innerHTML = '';
+        
             for (const item of interceptedData) {
                 const dataKey = `${item.data}-${item.from}-${item.to}`;
-
                 if (processedData.has(dataKey)) continue;
-
+        
                 processedData.add(dataKey);
+        
+                // Create the moving element (data)
+                const animation = document.createElement('div');
+                animation.className = 'data-animation';
+                animation.textContent = `${item.data}`;
+        
+                // Create the dotted line
+                const line = document.createElement('div');
+                line.className = 'dotted-line';
+        
+                // Create the arrow
+                const arrow = document.createElement('div');
+                arrow.className = 'arrow';
+        
+                document.body.appendChild(line);
+                document.body.appendChild(animation);
+                document.body.appendChild(arrow);
+        
+                // Get the positions of "from" and "to" elements
+                const fromElement = document.querySelector(`[data-label="${item.from}"]`);
+                const toElement = document.querySelector(`[data-label="${item.to}"]`);
+                const fromRect = fromElement.getBoundingClientRect();
+                const toRect = toElement.getBoundingClientRect();
+        
+                const startX = fromRect.left + fromRect.width / 2;
+                const endX = toRect.left + toRect.width / 2;
 
-                const fromBox = document.getElementById(item.from === '10.0.0.2' ? 'red-box' : 'green-box');
-                const toBox = document.getElementById(item.to === '10.0.0.2' ? 'red-box' : 'green-box');
+                const startY = startX > endX ? (fromRect.top + fromRect.height) : fromRect.top;
+                const endY = startX > endX ? (toRect.top + toRect.height) : toRect.top;
+                
+                // Set the line position and dimensions
+                const angle =  0; // Calculate angle
+                const length = Math.hypot(endX - startX, endY - startY); // Calculate length
 
-                await animateDataMovement(item.data, fromBox, toBox);
+                line.style.width = `${length}px`;
+                line.style.height = `2px`;
+                line.style.left = `${startX}px`; // Start at "from"
+                line.style.top = `${startY}px`;
+                line.style.transform = `rotate(${angle}rad)`;
+                line.style.transformOrigin = '0 50%';
+        
+                // Position the animation and arrow
+                animation.style.left = `${startX}px`;
+                animation.style.top = `${startY}px`;
+        
+                arrow.style.left = `${startX}px`;
+                arrow.style.top = `${startY}px`;
+                arrow.style.transform = `rotate(${angle}rad)`;
+        
+                // Animate the movement of data and arrow
+                setTimeout(() => {
+                    animation.style.transition = 'all 2s linear';
+                    arrow.style.transition = 'all 2s linear';
+        
+                    animation.style.left = `${endX}px`;
+                    animation.style.top = `${endY}px`;
+        
+                    arrow.style.left = `${endX}px`;
+                    arrow.style.top = `${endY}px`;
+                }, 50);
+        
+                // Remove elements after animation
+                setTimeout(() => {
+                    animation.remove();
+                    line.remove();
+                    arrow.remove();
+                }, 2050);
+        
+                // Append to intercepted list
+                const listId = item.from === '10.0.0.2' ? 'intercepted-10-0-0-2' : 'intercepted-10-0-0-3';
+                const list = document.getElementById(listId);
+                const li = document.createElement('li');
+                li.textContent = `${item.data}`;
+                list.appendChild(li);
             }
+        }       
 
-            fetchBroadcastedData();
-        }
-
-        // Fetch and display broadcasted data
         async function fetchBroadcastedData() {
             const response = await fetch('/api/broadcasted');
             const broadcastedData = await response.json();
-
-            broadcastedData.forEach((item) => {
-                const targetBox = document.querySelector(`.box[data-label="${item.sender}"]`);
-                if (targetBox) {
-                    const popup = document.createElement('div');
-                    popup.className = 'popup';
-                    popup.textContent = item.message;
-                    targetBox.appendChild(popup);
-
-                    setTimeout(() => {
-                        targetBox.removeChild(popup);
-                    }, 3000);
-                }
-            });
+        
+            // Clear existing data
+            document.getElementById('broadcast-10-0-0-2').innerHTML = '';
+            document.getElementById('broadcast-10-0-0-3').innerHTML = '';
+        
+            for (const item of broadcastedData) {
+                // Determine the correct list based on the sender
+                const listId = item.sender === '10.0.0.2' ? 'broadcast-10-0-0-2' : 'broadcast-10-0-0-3';
+                const list = document.getElementById(listId);
+        
+                // Add the secret to the broadcast list
+                const li = document.createElement('li');
+                li.textContent = item.data;
+                list.appendChild(li);
+        
+                // Create a popup element for the secret
+                const popup = document.createElement('div');
+                popup.className = 'popup';
+                popup.textContent = `Secret: ${item.data}`;
+        
+                // Position the popup above the sender's box
+                const senderBox = document.querySelector(`[data-label="${item.sender}"]`);
+                const senderRect = senderBox.getBoundingClientRect();
+        
+                popup.style.position = 'absolute';
+                popup.style.left = `${senderRect.left + senderRect.width / 2}px`;
+                popup.style.top = `${senderRect.top - 50}px`;
+        
+                // Delay the popup until after the animation is complete (match the timeout in `fetchInterceptedData`)
+                setTimeout(() => {
+                    // Add the popup to the document body
+                    document.body.appendChild(popup);
+        
+                    // Remove the popup after 3 seconds
+                    setTimeout(() => popup.remove(), 3000);
+                }, 2050); // Wait for the lines and arrows to disappear (2 seconds animation + 50ms buffer)
+            }
         }
+        
+        
 
-        function animateDataMovement(data, fromBox, toBox) {
-            return new Promise((resolve) => {
-                const fromRect = fromBox.getBoundingClientRect();
-                const toRect = toBox.getBoundingClientRect();
-
-                const animation = document.createElement('div');
-                animation.className = 'data-animation';
-                animation.textContent = data;
-                document.body.appendChild(animation);
-
-                animation.style.left = `${fromRect.left + fromRect.width / 2}px`;
-                animation.style.top = `${fromRect.top + fromRect.height / 2}px`;
-
-                animation.animate([
-                    { transform: 'translate(0, 0)' },
-                    {
-                        transform: `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`
-                    }
-                ], { duration: 1000, easing: 'ease-in-out' }).onfinish = () => {
-                    document.body.removeChild(animation);
-                    resolve();
-                };
-            });
+        function clearOldPopups() {
+            const popups = document.querySelectorAll('.popup');
+            popups.forEach((popup) => popup.remove());
         }
     </script>
 </body>
