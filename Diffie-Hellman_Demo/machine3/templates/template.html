@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        #buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007BFF;
+            color: #fff;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 50px;
+            position: relative;
+        }
+        .box {
+            width: 150px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            position: relative;
+        }
+        .red-box {
+            background-color: #ffcccc;
+            color: #900;
+            border: 2px solid #900;
+        }
+        .green-box {
+            background-color: #ccffcc;
+            color: #090;
+            border: 2px solid #090;
+        }
+        .black-box {
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: bold;
+            border-radius: 10px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .data-animation {
+            position: absolute;
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            color: #000;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .popup {
+            position: absolute;
+            top: -4em;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #000;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            animation: fadeOut 3s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Machine3 Visualizer</h1>
+
+    <!-- Buttons Section -->
+    <div id="buttons">
+        <button onclick="triggerAction('/trigger1')">Trigger 1: Diffie-Hellman Exchange</button>
+        <button onclick="triggerAction('/trigger2')">Trigger 2: RSA Key Exchange</button>
+    </div>
+
+    <!-- Data Visualization -->
+    <div id="container">
+        <div id="red-box" class="box red-box" data-label="10.0.0.2">10.0.0.2</div>
+        <div class="black-box">☠️</div>
+        <div id="green-box" class="box green-box" data-label="10.0.0.3">10.0.0.3</div>
+    </div>
+
+    <script>
+        const processedData = new Set();
+
+        // Trigger actions
+        async function triggerAction(endpoint) {
+            try {
+                await fetch(endpoint, { method: 'POST' });
+                console.log(`Triggered action at ${endpoint}`);
+                fetchInterceptedData();
+            } catch (error) {
+                console.error(`Error triggering action at ${endpoint}:`, error);
+            }
+        }
+
+        // Fetch and process intercepted data
+        async function fetchInterceptedData() {
+            const response = await fetch('/api/intercepted');
+            const interceptedData = await response.json();
+
+            for (const item of interceptedData) {
+                const dataKey = `${item.data}-${item.from}-${item.to}`;
+
+                if (processedData.has(dataKey)) continue;
+
+                processedData.add(dataKey);
+
+                const fromBox = document.getElementById(item.from === '10.0.0.2' ? 'red-box' : 'green-box');
+                const toBox = document.getElementById(item.to === '10.0.0.2' ? 'red-box' : 'green-box');
+
+                await animateDataMovement(item.data, fromBox, toBox);
+            }
+
+            fetchBroadcastedData();
+        }
+
+        // Fetch and display broadcasted data
+        async function fetchBroadcastedData() {
+            const response = await fetch('/api/broadcasted');
+            const broadcastedData = await response.json();
+
+            broadcastedData.forEach((item) => {
+                const targetBox = document.querySelector(`.box[data-label="${item.sender}"]`);
+                if (targetBox) {
+                    const popup = document.createElement('div');
+                    popup.className = 'popup';
+                    popup.textContent = item.message;
+                    targetBox.appendChild(popup);
+
+                    setTimeout(() => {
+                        targetBox.removeChild(popup);
+                    }, 3000);
+                }
+            });
+        }
+
+        function animateDataMovement(data, fromBox, toBox) {
+            return new Promise((resolve) => {
+                const fromRect = fromBox.getBoundingClientRect();
+                const toRect = toBox.getBoundingClientRect();
+
+                const animation = document.createElement('div');
+                animation.className = 'data-animation';
+                animation.textContent = data;
+                document.body.appendChild(animation);
+
+                animation.style.left = `${fromRect.left + fromRect.width / 2}px`;
+                animation.style.top = `${fromRect.top + fromRect.height / 2}px`;
+
+                animation.animate([
+                    { transform: 'translate(0, 0)' },
+                    {
+                        transform: `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`
+                    }
+                ], { duration: 1000, easing: 'ease-in-out' }).onfinish = () => {
+                    document.body.removeChild(animation);
+                    resolve();
+                };
+            });
+        }
+    </script>
+</body>
+</html>

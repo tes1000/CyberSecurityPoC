@@ -10,18 +10,19 @@ networks:
 
 services:
   machine3:  # Machine3 must start first as it acts as the MITM relay
-    image: python:3.9-alpine
-    container_name: machine3
+    image: python:3.9-slim # Prebuilt Flask image    container_name: machine3
     networks:
       dh_network:
         ipv4_address: 10.0.0.4
     working_dir: /app
     volumes:
       - ./machine3:/app
-    command: ["python", "main.py"]
+    ports:
+      - "3000:3000"
+    command: /bin/bash -c "pip install -r requirements.txt && python main.py"
 
   machine2:  # Machine2 should start after Machine3
-    image: python:3.9-alpine
+    image: python:3.9-slim
     container_name: machine2
     depends_on:
       - machine3
@@ -31,10 +32,10 @@ services:
     working_dir: /app
     volumes:
       - ./machine2:/app
-    command: ["python", "main.py"]
+    command: /bin/bash -c "pip install -r requirements.txt && python main.py"
 
   machine1:  # Machine1 should start last
-    image: python:3.9-alpine
+    image: python:3.9-slim
     container_name: machine1
     depends_on:
       - machine2
@@ -44,4 +45,4 @@ services:
     working_dir: /app
     volumes:
       - ./machine1:/app
-    command: ["python", "main.py"]
+    command: /bin/bash -c "pip install -r requirements.txt && python main.py"
