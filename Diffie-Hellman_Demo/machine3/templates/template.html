@@ -236,94 +236,126 @@
             }
         }
 
-        async function fetchInterceptedData() {
-            const response = await fetch('/api/intercepted');
-            const interceptedData = await response.json();
-        
-            document.getElementById('intercepted-10-0-0-2').innerHTML = '';
-            document.getElementById('intercepted-10-0-0-3').innerHTML = '';
-        
-            for (const item of interceptedData) {
-                const dataKey = `${item.data}-${item.from}-${item.to}`;
-                if (processedData.has(dataKey)) continue;
-        
-                processedData.add(dataKey);
-        
-                // Create the moving element (data)
-                const animation = document.createElement('div');
-                animation.className = 'data-animation';
-                animation.textContent = `${item.data}`;
-        
-                // Create the dotted line
-                const line = document.createElement('div');
-                line.className = 'dotted-line';
-        
-                // Create the arrow
-                const arrow = document.createElement('div');
-                arrow.className = 'arrow';
-        
-                document.body.appendChild(line);
-                document.body.appendChild(animation);
-                document.body.appendChild(arrow);
-        
-                // Get the positions of "from" and "to" elements
-                const fromElement = document.querySelector(`[data-label="${item.from}"]`);
-                const toElement = document.querySelector(`[data-label="${item.to}"]`);
-                const fromRect = fromElement.getBoundingClientRect();
-                const toRect = toElement.getBoundingClientRect();
-        
-                const startX = fromRect.left + fromRect.width / 2;
-                const endX = toRect.left + toRect.width / 2;
+async function fetchInterceptedData() {
+    const response = await fetch('/api/intercepted');
+    const interceptedData = await response.json();
 
-                const startY = startX > endX ? (fromRect.top + fromRect.height) : fromRect.top;
-                const endY = startX > endX ? (toRect.top + toRect.height) : toRect.top;
-                
-                // Set the line position and dimensions
-                const angle =  0; // Calculate angle
-                const length = Math.hypot(endX - startX, endY - startY); // Calculate length
+    document.getElementById('intercepted-10-0-0-2').innerHTML = '';
+    document.getElementById('intercepted-10-0-0-3').innerHTML = '';
 
-                line.style.width = `${length}px`;
-                line.style.height = `2px`;
-                line.style.left = `${startX}px`; // Start at "from"
-                line.style.top = `${startY}px`;
-                line.style.transform = `rotate(${angle}rad)`;
-                line.style.transformOrigin = '0 50%';
-        
-                // Position the animation and arrow
-                animation.style.left = `${startX}px`;
-                animation.style.top = `${startY}px`;
-        
-                arrow.style.left = `${startX}px`;
-                arrow.style.top = `${startY}px`;
-                arrow.style.transform = `rotate(${angle}rad)`;
-        
-                // Animate the movement of data and arrow
-                setTimeout(() => {
-                    animation.style.transition = 'all 2s linear';
-                    arrow.style.transition = 'all 2s linear';
-        
-                    animation.style.left = `${endX}px`;
-                    animation.style.top = `${endY}px`;
-        
-                    arrow.style.left = `${endX}px`;
-                    arrow.style.top = `${endY}px`;
-                }, 50);
-        
-                // Remove elements after animation
-                setTimeout(() => {
-                    animation.remove();
-                    line.remove();
-                    arrow.remove();
-                }, 2050);
-        
-                // Append to intercepted list
-                const listId = item.from === '10.0.0.2' ? 'intercepted-10-0-0-2' : 'intercepted-10-0-0-3';
-                const list = document.getElementById(listId);
-                const li = document.createElement('li');
-                li.textContent = `${item.data}`;
-                list.appendChild(li);
-            }
-        }       
+    for (const item of interceptedData) {
+        const dataKey = `${item.data}-${item.from}-${item.to}`;
+        if (processedData.has(dataKey)) continue;
+
+        processedData.add(dataKey);
+        console.log("item",item.data)
+        // Parse the intercepted data
+        const { base, modulo, public_key } = item.data;        
+        // Display secrets above the black box
+        if (modulo && base) {
+            displaySecrets(modulo, base);
+        }
+
+        // Create the moving element (data)
+        const animation = document.createElement('div');
+        animation.className = 'data-animation';
+        animation.textContent = `${public_key}`;
+
+        // Create the dotted line
+        const line = document.createElement('div');
+        line.className = 'dotted-line';
+
+        // Create the arrow
+        const arrow = document.createElement('div');
+        arrow.className = 'arrow';
+
+        document.body.appendChild(line);
+        document.body.appendChild(animation);
+        document.body.appendChild(arrow);
+
+        // Get the positions of "from" and "to" elements
+        const fromElement = document.querySelector(`[data-label="${item.from}"]`);
+        const toElement = document.querySelector(`[data-label="${item.to}"]`);
+        const fromRect = fromElement.getBoundingClientRect();
+        const toRect = toElement.getBoundingClientRect();
+
+        const startX = fromRect.left + fromRect.width / 2;
+        const endX = toRect.left + toRect.width / 2;
+
+        const startY = startX > endX ? (fromRect.top + fromRect.height) : fromRect.top;
+        const endY = startX > endX ? (toRect.top + toRect.height) : toRect.top;
+
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const angle = Math.atan2(dy, dx);
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        // Set the line position and dimensions
+        line.style.transition = 'none';
+        line.style.width = `${length}px`;
+        line.style.left = `${startX}px`;
+        line.style.top = `${startY}px`;
+        line.style.transform = `rotate(${angle}rad)`;
+        // Force reflow to ensure the styles are applied
+        requestAnimationFrame(() => {
+            line.style.transition = ''; // Re-enable transition
+        });
+
+        // Position the animation and arrow
+        animation.style.left = `${startX}px`;
+        animation.style.top = `${startY}px`;
+
+        arrow.style.left = `${startX}px`;
+        arrow.style.top = `${startY}px`;
+        arrow.style.transform = `rotate(${angle}rad)`;
+
+        // Animate the movement of data and arrow
+        setTimeout(() => {
+            animation.style.left = `${endX}px`;
+            animation.style.top = `${endY}px`;
+
+            arrow.style.left = `${endX}px`;
+            arrow.style.top = `${endY}px`;
+        }, 50);
+
+        // Remove elements after animation
+        setTimeout(() => {
+            animation.remove();
+            line.remove();
+            arrow.remove();
+        }, 2050);
+
+        // Append to intercepted list
+        const listId = item.from === '10.0.0.2' ? 'intercepted-10-0-0-2' : 'intercepted-10-0-0-3';
+        const list = document.getElementById(listId);
+        const li = document.createElement('li');
+        li.textContent = `${public_key}`;
+        list.appendChild(li);
+    }
+}
+
+function displaySecrets(modulo, base) {
+    // Check if the secrets box already exists
+    let secretsBox = document.getElementById('secrets-box');
+    if (!secretsBox) {
+        // Create the secrets box
+        secretsBox = document.createElement('div');
+        secretsBox.id = 'secrets-box';
+        secretsBox.style.position = 'absolute';
+        secretsBox.style.top = '10px';
+        secretsBox.style.left = '50%';
+        secretsBox.style.transform = 'translateX(-50%)';
+        secretsBox.style.backgroundColor = '#fff';
+        secretsBox.style.color = '#000';
+        secretsBox.style.padding = '10px 20px';
+        secretsBox.style.borderRadius = '10px';
+        secretsBox.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+        document.body.appendChild(secretsBox);
+    }
+
+    // Populate the secrets box
+    secretsBox.innerHTML = `Found secrets: <br> Modulo: ${modulo} <br> Base: ${base}`;
+}   
 
         async function fetchBroadcastedData() {
             const response = await fetch('/api/broadcasted');

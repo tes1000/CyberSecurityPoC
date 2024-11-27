@@ -41,7 +41,7 @@ def login():
 
     conn = sqlite3.connect('example.db')
     cursor = conn.cursor()
-    print(f'Executing query: {query}')
+    app.logger.error(f'Executing query: {query}')
     # Execute the vulnerable query
     cursor.execute(query)
 

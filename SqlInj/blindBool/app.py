@@ -66,15 +66,15 @@ def search():
         results = cursor.fetchall()
     except sqlite3.Error as e:
         results = None
-        print(f'Error: {e}')
+        app.logger.error(f'Error: {e}')
 
     conn.close()
-    print("executed")
+    app.logger.error("executed")
     if not results:
-        print("REZ: ",results)
+        app.logger.error("REZ: ",results)
         return render_template('index.html', results2="User Doesn't exits.")
     else:
-        print("res: ",results)
+        app.logger.error("res: ",results)
         return render_template('index.html', results2="User exits!")
 
 if __name__ == '__main__':

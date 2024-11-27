@@ -10,15 +10,14 @@ networks:
 
 services:
   machine3:  # Machine3 must start first as it acts as the MITM relay
-    image: python:3.9-slim # Prebuilt Flask image    container_name: machine3
+    image: python:3.9-slim
+    container_name: machine3
     networks:
       dh_network:
         ipv4_address: 10.0.0.4
     working_dir: /app
     volumes:
       - ./machine3:/app
-    ports:
-      - "3000:3000"
     command: /bin/bash -c "pip install -r requirements.txt && python main.py"
 
   machine2:  # Machine2 should start after Machine3
@@ -46,3 +45,14 @@ services:
     volumes:
       - ./machine1:/app
     command: /bin/bash -c "pip install -r requirements.txt && python main.py"
+
+  nginx:  # NGINX service to forward to machine3
+    image: nginx:latest
+    container_name: nginx
+    networks:
+      dh_network:
+        ipv4_address: 10.0.0.5
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro  # Mount custom NGINX config
+    ports:
+      - "3654:3654"  # Expose port 3654 to the host
