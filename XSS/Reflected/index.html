@@ -58,9 +58,13 @@
     .param-row:nth-child(even) {
       background-color: #f5f5f5;
     }
+    .safe-cell {
+    background-color: #f0fff0;
+    border-left: 3px solid #28a745;
+    }
     .vulnerable-cell {
-      background-color: #fff0f0;
-      border-left: 3px solid #eb1c23;
+    background-color: #fff0f0;
+    border-left: 3px solid #eb1c23;
     }
     .code {
       font-family: monospace;
@@ -98,7 +102,7 @@
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        ['Parameter', 'Original Value', 'Decoded Once', 'Decoded Twice (Vulnerable)'].forEach(text => {
+        ['Parameter', 'Original Value', 'Decoded Once', 'Decoded Twice'].forEach(text => {
           const th = document.createElement('th');
           th.textContent = text;
           headerRow.appendChild(th);
@@ -139,8 +143,12 @@
             row.appendChild(onceCell);
 
             const twiceCell = document.createElement('td');
-            twiceCell.className = 'vulnerable-cell';
-            twiceCell.innerHTML = decodedTwice; // ✅ Vulnerable sink
+            const isVulnerable = /<\s*script|on\w+\s*=|<\s*img[^>]*onerror\s*=|javascript:/i.test(decodedTwice);
+
+            twiceCell.className = isVulnerable ? 'vulnerable-cell' : 'safe-cell';
+            twiceCell.innerHTML = isVulnerable 
+            ? decodedTwice + ' <strong style="color:#eb1c23;">(Vulnerable)</strong>' 
+            : `<code class="code">${decodedTwice}</code> <strong style="color:#28a745;">(Safe)</strong>`;
             row.appendChild(twiceCell);
 
             tbody.appendChild(row);
