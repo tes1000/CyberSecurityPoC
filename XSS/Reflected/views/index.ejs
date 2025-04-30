@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Firesand Reflected XSS Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f1923;
+      --bg-secondary: #1a2633;
+      --bg-tertiary: #232e3c;
+      --accent-primary: #eb1c23;
+      --accent-secondary: #ff5e00;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a9b2;
+      --safe: #00cc66;
+      --unsafe: #eb1c23;
+      --border: #2a3544;
+      --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.2), 0 0 4px rgba(235, 28, 35, 0.1);
+      --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.25), 0 0 8px rgba(235, 28, 35, 0.15);
+      --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3), 0 0 12px rgba(235, 28, 35, 0.2);
+      --glow-sm: 0 0 8px rgba(235, 28, 35, 0.2);
+      --glow-md: 0 0 15px rgba(235, 28, 35, 0.3);
+      --glow-lg: 0 0 20px rgba(235, 28, 35, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    th{
+      min-width: 155px;
+    }
+    body {
+      font-family: 'Exo', sans-serif;
+      background: repeating-linear-gradient(135deg, var(--bg-primary) 0%, #131d2c 40%);
+      background-color: var(--bg-primary);
+      background-image: url('gamblingCopy.png');
+      background-size: 400px;
+      background-position: top left;
+    }
+
+    .container {
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .main-panel {
+      background-color: var(--bg-secondary);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg), var(--glow-md);
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      grid-template-rows: auto auto auto;
+      min-width: 60vw;
+      gap: 30px;
+    }
+
+    .logo {
+      grid-row: span 2;
+      width: 180px;
+      height: 180px;
+      background-image: url('logo.png');
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 2.2rem;
+      color: var(--text-primary);
+      text-shadow: 0 0 10px rgba(235, 28, 35, 0.5);
+      position: relative;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+    }
+
+    p.subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      margin-top: 12px;
+    }
+
+    #output {
+      grid-column: span 2;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 25px;
+      min-height: 120px;
+      background-color: var(--bg-tertiary);
+      box-shadow: var(--shadow-lg);
+      animation: glow 4s infinite alternate;
+      width: 100%;
+    }
+
+    @keyframes glow {
+      0% {
+        box-shadow: var(--shadow-lg);
+      }
+      100% {
+        box-shadow: var(--shadow-lg), var(--glow-md);
+      }
+    }
+
+    .param-info {
+      grid-column: span 2;
+      background-color: var(--bg-tertiary);
+      padding: 20px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    code {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: var(--accent-primary);
+      word-break: break-all;
+    }
+
+    .example-button {
+      position: relative;
+      padding: 8px 15px;
+      background: transparent;
+      color: var(--accent-primary);
+      border: 1px solid var(--accent-primary);
+      font-family: 'Exo', sans-serif;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s;
+      clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .example-button:hover {
+      background-color: rgba(235, 28, 35, 0.1);
+      box-shadow: var(--shadow-sm), var(--glow-sm);
+      transform: translateY(-2px);
+    }
+
+    .example-button:active {
+      transform: translateY(0);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      font-size: 14px;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--bg-tertiary);
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .param-row:hover {
+      background-color: rgba(235, 28, 35, 0.05);
+    }
+
+    .param-row:nth-child(even) {
+      background-color: var(--bg-tertiary);
+    }
+
+    .safe-cell {
+      background-color: rgba(0, 204, 102, 0.05);
+      border-left: 3px solid var(--safe);
+    }
+
+    .vulnerable-cell {
+      background-color: rgba(255, 51, 102, 0.05);
+      border-left: 3px solid var(--unsafe);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-panel">
+      <div class="logo"></div>
+      <div class="title">
+        <h1>Reflected XSS Demo</h1>
+        <p class="subtitle">This demo shows how double-encoded parameters in URLs can bypass WAF protections.</p>
+      </div>
+
+      <div id="output">
+        <% if (!hasParams) { %>
+          <p>No parameters detected. Try adding some to the URL.</p>
+        <% } else { %>
+          <h3>Parameter Decoding Analysis:</h3>
+          <table>
+            <thead>
+              <tr>
+                <th><code>Parameter</code></th>
+                <th><code>Original Value</code></th>
+                <th><code>Decoded Once</code></th>
+                <th><code>Decoded Twice</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% paramEntries.forEach(function(entry) { %>
+                <tr class="param-row">
+                  <% if (entry.error) { %>
+                    <td><code><%= entry.key %></code></td>
+                    <td colspan="3" style="color:var(--unsafe);">Error decoding parameter: <%= entry.error %></td>
+                  <% } else { %>
+                    <td><code><%= entry.key %></code></td>
+                    <td><code><%= entry.rawValue %></code></td>
+                    <td><code><%= entry.decodedOnce %></code></td>
+                    <td class="<%= entry.isVulnerable ? 'vulnerable-cell' : 'safe-cell' %>">
+                      <%- entry.isVulnerable ? entry.decodedTwice + ' <strong style="color:var(--unsafe);">(Vulnerable)</strong>' : '<code>' + entry.decodedTwice + '</code> <strong style="color:var(--safe);">(Safe)</strong>' %>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <div class="param-info">
+        <p>Example: <code>?msg=%253Cimg%2520src%253Dx%2520onerror%253Dalert(1)%253E</code></p>
+        <button class="example-button" onclick="window.location.href='?msg=%253Cimg%2520src%253Dx%2520onerror%253Dalert(1)%253E'">
+          Try Example
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
