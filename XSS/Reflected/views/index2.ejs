@@ -12,8 +12,8 @@
       --bg-primary: #0f1923;
       --bg-secondary: #1a2633;
       --bg-tertiary: #232e3c;
-      --accent-primary: #eb1c23;
-      --accent-secondary: #ff5e00;
+      --accent-primary: #ff5e00;
+      --accent-secondary: #eb1c23;
       --text-primary: #ffffff;
       --text-secondary: #a3a9b2;
       --safe: #00cc66;
@@ -54,12 +54,13 @@
       background-color: var(--bg-secondary);
       padding: 40px;
       border-radius: 16px;
-      box-shadow: var(--shadow-lg), var(--glow-md);
+      box-shadow: var(--shadow-lg), var(--glow-lg);
       display: grid;
       grid-template-columns: 180px 1fr;
       grid-template-rows: auto auto auto;
       min-width: 60vw;
       gap: 30px;
+      border: 3px solid rgba(255, 255, 255, 0.05);
     }
 
     .logo {
@@ -82,6 +83,11 @@
     h1 {
       font-family: 'Russo One', sans-serif;
       font-size: 2.2rem;
+      color: var(--text-primary);
+      text-shadow: 0 0 10px rgba(235, 28, 35, 0.5);
+      position: relative;
+    }
+    h3{
       color: var(--text-primary);
       text-shadow: 0 0 10px rgba(235, 28, 35, 0.5);
       position: relative;
@@ -184,12 +190,14 @@
       border-spacing: 0;
       border-radius: 8px;
       overflow: hidden;
+      table-layout: fixed;
     }
 
     th, td {
       border: 1px solid var(--border);
       padding: 12px;
       text-align: left;
+      overflow: hidden;
     }
 
     th {
@@ -218,6 +226,66 @@
       background-color: rgba(255, 51, 102, 0.05);
       border-left: 3px solid var(--unsafe);
     }
+
+    td code {
+      display: block;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      position: relative;
+    }
+    
+    /* Tooltip container */
+    .tooltip-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    
+    /* Tooltip text */
+    .tooltip-text {
+      visibility: hidden;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      text-align: left;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--accent-primary);
+      box-shadow: var(--shadow-md);
+      
+      /* Position the tooltip */
+      position: absolute;
+      z-index: 1;
+      top: 125%;
+      left: 0;
+      width: max-content;
+      max-width: 500px;
+      word-break: break-all;
+      
+      /* Fade in tooltip */
+      opacity: 0;
+      transition: opacity 0.3s;
+      
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .tooltip-container:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Add an arrow */
+    .tooltip-text::after {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 15px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent var(--accent-primary) transparent;
+    }
   </style>
 </head>
 <body>
@@ -237,10 +305,10 @@
           <table>
             <thead>
               <tr>
-                <th><code>Parameter</code></th>
-                <th><code>Original Value</code></th>
-                <th><code>Decoded Once</code></th>
-                <th><code>Decoded Twice</code></th>
+                <th style="width: 15%"><code>Parameter</code></th>
+                <th style="width: 25%"><code>Original Value</code></th>
+                <th style="width: 25%"><code>Decoded Once</code></th>
+                <th style="width: 35%"><code>Decoded Twice</code></th>
               </tr>
             </thead>
             <tbody>
@@ -250,11 +318,36 @@
                     <td><code><%= entry.key %></code></td>
                     <td colspan="3" style="color:var(--unsafe);">Error decoding parameter: <%= entry.error %></td>
                   <% } else { %>
-                    <td><code><%= entry.key %></code></td>
-                    <td><code><%= entry.rawValue %></code></td>
-                    <td><code><%= entry.decodedOnce %></code></td>
+                    <td>
+                      <div class="tooltip-container">
+                        <code><%= entry.key %></code>
+                        <span class="tooltip-text"><%= entry.key %></span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="tooltip-container">
+                        <code><%= entry.rawValue %></code>
+                        <span class="tooltip-text"><%= entry.rawValue %></span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="tooltip-container">
+                        <code><%= entry.decodedOnce %></code>
+                        <span class="tooltip-text"><%= entry.decodedOnce %></span>
+                      </div>
+                    </td>
                     <td class="<%= entry.isVulnerable ? 'vulnerable-cell' : 'safe-cell' %>">
-                      <%- entry.isVulnerable ? entry.decodedTwice + ' <strong style="color:var(--unsafe);">(Vulnerable)</strong>' : '<code>' + entry.decodedTwice + '</code> <strong style="color:var(--safe);">(Safe)</strong>' %>
+                      <% if (entry.isVulnerable) { %>
+                        <div class="tooltip-container">
+                          <div><%= entry.decodedTwice %> <strong style="color:var(--unsafe);">(Vulnerable)</strong></div>
+                          <span class="tooltip-text"><%= entry.decodedTwice %></span>
+                        </div>
+                      <% } else { %>
+                        <div class="tooltip-container">
+                          <code><%= entry.decodedTwice %></code> <strong style="color:var(--safe);">(Safe)</strong>
+                          <span class="tooltip-text"><%= entry.decodedTwice %></span>
+                        </div>
+                      <% } %>
                     </td>
                   <% } %>
                 </tr>
