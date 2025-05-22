@@ -1,4 +1,4 @@
-From debian:latest
+From debian:12.11
 
 RUN apt update
 
